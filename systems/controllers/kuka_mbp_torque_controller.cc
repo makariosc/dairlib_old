@@ -72,6 +72,8 @@ class StateDependentDamper : public LeafSystem<T> {
     Eigen::ArrayXd temp = H.diagonal().array() * stiffness_.array();
     Eigen::ArrayXd damping_gains = 2 * temp.sqrt();
     damping_gains *= damping_ratio_.array();
+    std::cout << "damping ratio!!!!" << std::endl;
+    std::cout << damping_gains << std::endl;
 
     // Compute damping torque.
     torque->get_mutable_value() = -(damping_gains * v.array()).matrix();

@@ -5,6 +5,7 @@ namespace systems {
 
 using drake::systems::Context;
 using drake::systems::BasicVector;
+using drake::systems::EventStatus;
 
 class VectorScope : public drake::systems::LeafSystem<double> {
  public:
@@ -13,7 +14,7 @@ class VectorScope : public drake::systems::LeafSystem<double> {
  private:
   // const std::string msg_;
 
-  void PrintOutput(const Context<double>& context, BasicVector<double>* notreallyoutput) const;
+  EventStatus PrintOutput(const Context<double>& context) const;
 
 };
 

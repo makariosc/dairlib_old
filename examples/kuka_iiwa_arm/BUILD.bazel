@@ -42,6 +42,7 @@ cc_binary(
         "@drake//systems/primitives:discrete_derivative",
         "@drake//manipulation/kuka_iiwa:kuka_iiwa",
         "@drake//systems/lcm:lcm_interface_system",
+        "@drake//systems/primitives:constant_vector_source",
         "//systems/controllers:kuka_mbp_torque_controller",
         "//systems:vector_scope",
     ],

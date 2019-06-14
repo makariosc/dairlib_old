@@ -26,5 +26,6 @@ cc_library(
         "@drake//systems/framework:diagram_builder",
         "@drake//systems/framework:vector",
         "@drake//systems/framework:framework_common",
+        "@drake//systems/framework:event_collection"
     ]
 )

@@ -37,8 +37,8 @@ void EndEffectorPositionController::CalcOutputTwist(
   VectorX<double> q_actual = this->EvalVectorInput(context,
       joint_position_measured_port)->CopyToVector();
 
- std::cout << "q_actual_position" << std::endl;
- std::cout << q_actual << std::endl;
+ // std::cout << "q_actual_position" << std::endl;
+ // std::cout << q_actual << std::endl;
 
   VectorX<double> x_desired = this->EvalVectorInput(context,
       endpoint_position_commanded_port)->CopyToVector();
@@ -73,9 +73,9 @@ void EndEffectorPositionController::CalcOutputTwist(
 
   // Transforming angular velocity from joint frame to world frame
   MatrixXd angularVelocityWF = tree_local.relativeTransform(cache, WORLDFRAME_ID, ee_frame_id).linear() * angularVelocity;
-  // std::cout << x_desired << std::endl;
- std::cout << "@@@@@@@@@@@@@@@@@@" << std::endl;
-  // std::cout << x_actual << std::endl;
+  std::cout << x_desired << std::endl;
+  std::cout << "@@@@@@@@@@@@@@@@@@" << std::endl;
+  std::cout << x_actual << std::endl;
 
 
   MatrixXd twist(6, 1);

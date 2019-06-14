@@ -1,10 +1,10 @@
 // Kp and 'Rotational' Kp
 #define K_P 1
-#define K_OMEGA 0
+#define K_OMEGA 1
 
 // Kd and 'Rotational' Kd
-#define K_D 0.01
-#define K_R 0
+#define K_D 0.1
+#define K_R 0.1
 
 #define NUM_JOINTS 7
 #define ENDEFFECTOR_BODY_ID 10
@@ -134,7 +134,7 @@ int do_main(int argc, char* argv[]) {
 
   builder.Connect(status_subscriber->get_output_port(),
                   status_receiver->get_input_port());
-  builder.Connect(status_receiver->get_position_commanded_output_port(),
+  builder.Connect(status_receiver->get_position_measured_output_port(),
                   velocity_controller->get_joint_pos_input_port());
   builder.Connect(status_receiver->get_velocity_estimated_output_port(),
                   velocity_controller->get_joint_vel_input_port());

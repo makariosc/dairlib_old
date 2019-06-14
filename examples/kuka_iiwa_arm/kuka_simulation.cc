@@ -40,6 +40,7 @@
 #include "drake/lcmt_iiwa_command.hpp"
 #include "drake/lcmt_iiwa_status.hpp"
 #include "systems/controllers/kuka_mbp_torque_controller.h"
+#include "drake/systems/primitives/constant_value_source.h"
 #include "systems/vector_scope.h"
 
 namespace drake {
@@ -60,6 +61,7 @@ namespace kuka_iiwa_arm {
  using manipulation::kuka_iiwa::IiwaCommandReceiver;
  using manipulation::kuka_iiwa::IiwaStatusSender;
  using systems::StateInterpolatorWithDiscreteDerivative;
+ using systems::ConstantVectorSource;
 
 // Load a SDF model and weld it to the MultibodyPlant.
 // @param model_path Full path to the sdf model file. i.e. with
@@ -140,7 +142,7 @@ int DoMain() {
 
 
   VectorX<double> q0_iiwa(num_joints);
-  q0_iiwa << 0, 0.6, 0, -1.75, 0, 1.0, 0;
+  q0_iiwa << 0, 0, 0, 0, 0, 1.0, 0;
 
   // Set the iiwa default configuration.
   const auto iiwa_joint_indices =
@@ -185,6 +187,11 @@ int DoMain() {
   auto iiwa_controller = builder.AddSystem<dairlib::systems::KukaTorqueController<double>>(std::move(owned_controller_plant), stiffness, damping_ratio);
   auto test = builder.AddSystem<dairlib::systems::VectorScope>(iiwa_controller->get_output_port_control().size());
 
+  Eigen::VectorXd constTorqueValues(7);
+  constTorqueValues << 0, 0, 0, 0, 0, 0, 0;
+
+  auto constant_source = builder.AddSystem<ConstantVectorSource<double>>(constTorqueValues);
+
   // Creating status sender
   auto iiwa_status = builder.AddSystem<IiwaStatusSender>(num_joints);
 
@@ -194,15 +201,20 @@ int DoMain() {
                         desired_state_from_position->get_input_port());
   builder.Connect(desired_state_from_position->get_output_port(),
                         iiwa_controller->get_input_port_desired_state());
-  builder.Connect(iiwa_controller->get_output_port_control(),
-                  test->get_input_port(0));
 
   builder.Connect(world_plant->get_state_output_port(),
                   iiwa_controller->get_input_port_estimated_state());
   builder.Connect(command_receiver->get_output_port(1),
                   iiwa_controller->get_input_port_commanded_torque());
+
+  builder.Connect(iiwa_controller->get_output_port_control(),
+                  test->get_input_port(0));
+
   builder.Connect(iiwa_controller->get_output_port_control(),
                   world_plant->get_actuation_input_port());
+
+  // builder.Connect(constant_source->get_output_port(),
+  //                 world_plant->get_actuation_input_port());
 
   builder.Connect(iiwa_controller->get_output_port_control(),
                   iiwa_status->get_position_commanded_input_port());
@@ -220,8 +232,10 @@ int DoMain() {
                   iiwa_status->get_position_measured_input_port());
   builder.Connect(demux->get_output_port(1),
                   iiwa_status->get_velocity_estimated_input_port());
+
   builder.Connect(iiwa_controller->get_output_port_control(),
                   iiwa_status->get_torque_commanded_input_port());
+
   builder.Connect(iiwa_controller->get_output_port_control(),
                   iiwa_status->get_torque_measured_input_port());
   builder.Connect(world_plant->get_generalized_contact_forces_output_port(iiwa_instance),
