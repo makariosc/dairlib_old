@@ -39,6 +39,11 @@ cc_binary(
         "@drake//systems/controllers:inverse_dynamics_controller",
         "@drake//systems/framework",
         "@drake//systems/sensors/dev:rgbd_camera",
+        "@drake//systems/primitives:discrete_derivative",
+        "@drake//manipulation/kuka_iiwa:kuka_iiwa",
+        "@drake//systems/lcm:lcm_interface_system",
+        "//systems/controllers:kuka_mbp_torque_controller",
+        "//systems:vector_scope",
     ],
 )
 

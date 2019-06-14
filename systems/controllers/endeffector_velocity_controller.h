@@ -26,7 +26,7 @@ class EndEffectorVelocityController : public LeafSystem<double> {
     // Constructor
     EndEffectorVelocityController(const RigidBodyTree<double>& tree,
                                   Eigen::Isometry3d eeCFIsometry,
-                                  int num_joints, int k_d, int k_r);
+                                  int num_joints, double k_d, double k_r);
 
     // Getter methods for each of the individual input/output ports.
     const drake::systems::InputPort<double>& get_joint_pos_input_port() const {
@@ -59,8 +59,8 @@ class EndEffectorVelocityController : public LeafSystem<double> {
     int endpoint_twist_commanded_port;
     int endpoint_torque_output_port;
     int num_joints;
-    int k_d;
-    int k_r;
+    double k_d;
+    double k_r;
 };
 
 

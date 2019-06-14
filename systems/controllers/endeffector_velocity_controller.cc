@@ -6,7 +6,7 @@ namespace systems{
 // Remember to use std::move on the rigid body tree argument.
 EndEffectorVelocityController::EndEffectorVelocityController(
     const RigidBodyTree<double>& tree, Eigen::Isometry3d eeCFIsometry,
-    int num_joints, int k_d, int k_r) : tree(tree){
+    int num_joints, double k_d, double k_r) : tree(tree){
 
   // Set up this block's input and output ports
   // Input port values will be accessed via EvalVectorInput() later
@@ -58,9 +58,21 @@ void EndEffectorVelocityController::CalcOutputTorques(
   // Calculating the error
   MatrixXd generalizedForces = gains * (twist_desired - twist_actual);
 
+  // std::cout << "frameSpatialVelocityJacobian" << std::endl;
+  // std::cout << frameSpatialVelocityJacobian << std::endl;
+  // std::cout << "q_dot" << std::endl;
+  // std::cout << q_dot << std::endl;
+  std::cout << "q_velocity" << std::endl;
+  std::cout << q << std::endl;
+
+  // VectorXd manualout(7);
+  // manualout << 1, 1, 1, 1, 1, 1, 1;
+
   // Multiplying J^t x force to get torque outputs, then storing them in the output vector
   output->set_value(frameSpatialVelocityJacobian.transpose() * generalizedForces); // (7 x 6) * (6 x 1) = 7 x 1
-
+  //output->set_value(manualout);
+  std::cout << "output!!!!" << std::endl;
+  std::cout << frameSpatialVelocityJacobian.transpose() * generalizedForces << std::endl;
   // Getting last element for timestep since timestep is stored in last element
   //output->set_timestamp(this->EvalVectorInput(context, joint_position_measured_port)->GetAtIndex(NUM_JOINTS));
 }

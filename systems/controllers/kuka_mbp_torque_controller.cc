@@ -65,9 +65,10 @@ class StateDependentDamper : public LeafSystem<T> {
 
     // Compute critical damping gains and scale by damping ratio. Use Eigen
     // arrays (rather than matrices) for elementwise multiplication.
-    Eigen::MatrixXd H;
-    // std::unique_ptr<Context<double>> context = plant_.CreateDefaultContext();
-    plant_.CalcMassMatrixViaInverseDynamics(context, &H);
+    Eigen::MatrixXd H(plant_.num_positions(), plant_.num_positions());
+    std::unique_ptr<Context<double>> plant_context = plant_.CreateDefaultContext();
+
+    plant_.CalcMassMatrixViaInverseDynamics(*plant_context.get(), &H);
     Eigen::ArrayXd temp = H.diagonal().array() * stiffness_.array();
     Eigen::ArrayXd damping_gains = 2 * temp.sqrt();
     damping_gains *= damping_ratio_.array();

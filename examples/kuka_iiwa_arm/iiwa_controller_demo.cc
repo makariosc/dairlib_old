@@ -1,10 +1,10 @@
 // Kp and 'Rotational' Kp
-#define K_P 1000
-#define K_OMEGA 50
+#define K_P 1
+#define K_OMEGA 0
 
 // Kd and 'Rotational' Kd
-#define K_D 25
-#define K_R 3
+#define K_D 0.01
+#define K_R 0
 
 #define NUM_JOINTS 7
 #define ENDEFFECTOR_BODY_ID 10

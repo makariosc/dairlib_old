@@ -34,7 +34,7 @@ class EndEffectorPositionController : public LeafSystem<double> {
    // Constructor
    EndEffectorPositionController(const RigidBodyTree<double>& tree, int ee_frame_id,
                              Eigen::Vector3d ee_contact_frame, int num_joints,
-                             int k_p, int k_omega);
+                             double k_p, double k_omega);
 
    // Getter methods for each of the individual input/output ports.
    const drake::systems::InputPort<double>& get_joint_pos_input_port() const {
@@ -63,8 +63,8 @@ class EndEffectorPositionController : public LeafSystem<double> {
    int endpoint_position_cmd_output_port;
    const RigidBodyTree<double>& tree_local;
    int ee_frame_id;
-   int k_p;
-   int k_omega;
+   double k_p;
+   double k_omega;
 
 };
 

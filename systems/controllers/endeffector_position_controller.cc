@@ -8,7 +8,7 @@ namespace systems{
  // Remember to use std::move on the rigid body tree argument.
 EndEffectorPositionController::EndEffectorPositionController(
     const RigidBodyTree<double>& tree, int ee_frame_id,
-    Eigen::Vector3d ee_contact_frame, int num_joints, int k_p, int k_omega)
+    Eigen::Vector3d ee_contact_frame, int num_joints, double k_p, double k_omega)
     : tree_local(tree){
 
   // Set up this block's input and output ports
@@ -36,6 +36,9 @@ void EndEffectorPositionController::CalcOutputTwist(
 
   VectorX<double> q_actual = this->EvalVectorInput(context,
       joint_position_measured_port)->CopyToVector();
+
+ std::cout << "q_actual_position" << std::endl;
+ std::cout << q_actual << std::endl;
 
   VectorX<double> x_desired = this->EvalVectorInput(context,
       endpoint_position_commanded_port)->CopyToVector();
@@ -70,12 +73,14 @@ void EndEffectorPositionController::CalcOutputTwist(
 
   // Transforming angular velocity from joint frame to world frame
   MatrixXd angularVelocityWF = tree_local.relativeTransform(cache, WORLDFRAME_ID, ee_frame_id).linear() * angularVelocity;
-  std::cout << x_desired << std::endl;
-  std::cout << "@@@@@@@@@@@@@@@@@@" << std::endl;
-  std::cout << x_actual << std::endl;
-  
+  // std::cout << x_desired << std::endl;
+ std::cout << "@@@@@@@@@@@@@@@@@@" << std::endl;
+  // std::cout << x_actual << std::endl;
+
+
   MatrixXd twist(6, 1);
   twist << angularVelocityWF, diff;
+  //std::cout << twist << std::endl;
   output->set_value(twist);
 }
 
