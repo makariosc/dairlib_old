@@ -161,5 +161,23 @@ cc_library(
         "@drake//systems/framework:leaf_system",
         "@drake//systems/primitives:adder",
         "@drake//systems/primitives:pass_through",
+        "//systems:vector_scope",
+    ],
+)
+
+cc_library(
+    name = "kuka_torque_controller",
+    srcs = ["kuka_torque_controller.cc"],
+    hdrs = ["kuka_torque_controller.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@drake//attic/multibody:rigid_body_tree",
+        "@drake//attic/systems/controllers:rbt_inverse_dynamics",
+        "@drake//systems/controllers:pid_controller",
+        "@drake//systems/controllers:state_feedback_controller_interface",
+        "@drake//systems/framework:diagram_builder",
+        "@drake//systems/framework:leaf_system",
+        "@drake//systems/primitives:adder",
+        "@drake//systems/primitives:pass_through",
     ],
 )

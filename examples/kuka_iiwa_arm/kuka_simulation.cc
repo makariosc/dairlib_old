@@ -95,7 +95,7 @@ void SetTorqueControlledIiwaGains(Eigen::VectorXd* stiffness,
 
   // The spring stiffness in Nm/rad.
   stiffness->resize(7);
-  *stiffness << 0, 0, 0, 0, 0, 0, 0;
+  *stiffness << 1000, 1000, 1000, 500, 500, 500, 500;
 
   // A dimensionless damping ratio. See KukaTorqueController for details.
   damping_ratio->resize(stiffness->size());
@@ -142,7 +142,7 @@ int DoMain() {
 
 
   VectorX<double> q0_iiwa(num_joints);
-  q0_iiwa << 0, 0, 0, 0, 0, 1.0, 0;
+  q0_iiwa << 0, 0, 0, 0, 0, 0, 0;
 
   // Set the iiwa default configuration.
   const auto iiwa_joint_indices =
@@ -185,7 +185,7 @@ int DoMain() {
   stiffness = stiffness.replicate(1, 1);
 
   auto iiwa_controller = builder.AddSystem<dairlib::systems::KukaTorqueController<double>>(std::move(owned_controller_plant), stiffness, damping_ratio);
-  auto test = builder.AddSystem<dairlib::systems::VectorScope>(iiwa_controller->get_output_port_control().size());
+  auto test = builder.AddSystem<dairlib::systems::VectorScope>(iiwa_controller->get_output_port_control().size(), "output port control");
 
   Eigen::VectorXd constTorqueValues(7);
   constTorqueValues << 0, 0, 0, 0, 0, 0, 0;
@@ -210,11 +210,11 @@ int DoMain() {
   builder.Connect(iiwa_controller->get_output_port_control(),
                   test->get_input_port(0));
 
-  builder.Connect(iiwa_controller->get_output_port_control(),
-                  world_plant->get_actuation_input_port());
-
-  // builder.Connect(constant_source->get_output_port(),
+  // builder.Connect(iiwa_controller->get_output_port_control(),
   //                 world_plant->get_actuation_input_port());
+
+  builder.Connect(constant_source->get_output_port(),
+                  world_plant->get_actuation_input_port());
 
   builder.Connect(iiwa_controller->get_output_port_control(),
                   iiwa_status->get_position_commanded_input_port());

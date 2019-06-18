@@ -1,6 +1,6 @@
 // Kp and 'Rotational' Kp
-#define K_P 1
-#define K_OMEGA 1
+#define K_P 10
+#define K_OMEGA 10
 
 // Kd and 'Rotational' Kd
 #define K_D 0.1
