@@ -95,7 +95,7 @@ void SetTorqueControlledIiwaGains(Eigen::VectorXd* stiffness,
 
   // The spring stiffness in Nm/rad.
   stiffness->resize(7);
-  *stiffness << 1000, 1000, 1000, 500, 500, 500, 500;
+  *stiffness << 0, 0, 0, 0, 0, 0, 0;
 
   // A dimensionless damping ratio. See KukaTorqueController for details.
   damping_ratio->resize(stiffness->size());
@@ -199,9 +199,6 @@ int DoMain() {
                         command_receiver->get_input_port());
   builder.Connect(command_receiver->get_commanded_position_output_port(),
                         desired_state_from_position->get_input_port());
-  builder.Connect(desired_state_from_position->get_output_port(),
-                        iiwa_controller->get_input_port_desired_state());
-
   builder.Connect(world_plant->get_state_output_port(),
                   iiwa_controller->get_input_port_estimated_state());
   builder.Connect(command_receiver->get_output_port(1),

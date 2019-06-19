@@ -21,7 +21,12 @@ group "1.simulated-robot" {
         host = "localhost";
     }
 
-    cmd "3.Visualizer" {
+    cmd "3.iiwa_oscillate" {
+        exec = "bazel-bin/examples/kuka_iiwa_arm/iiwa_oscillate";
+        host = "localhost";
+    }
+
+    cmd "4.Visualizer" {
         exec = "bazel-bin/examples/kuka_iiwa_arm/iiwa_visualizer";
         host = "localhost";
     }

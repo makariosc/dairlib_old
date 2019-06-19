@@ -154,10 +154,11 @@ void KukaTorqueController<T>::SetUp(const VectorX<double>& stiffness,
       builder.ExportInput(adder->get_input_port(0));
 
   // Exposes controller output.
+  //output_port_index_control_ = builder.ExportOutput(gravity_comp->get_output_port(0));
   output_port_index_control_ = builder.ExportOutput(adder->get_output_port());
 
-  auto test = builder.template AddSystem<dairlib::systems::VectorScope>(adder->get_output_port().size(), "torque output");
-  builder.Connect(adder->get_output_port(), test->get_input_port(0));
+  auto scope = builder.template AddSystem<dairlib::systems::VectorScope>(adder->get_output_port().size(), "torque output");
+  builder.Connect(adder->get_output_port(), scope->get_input_port(0));
 
 
   builder.BuildInto(this);

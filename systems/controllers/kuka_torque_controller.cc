@@ -9,6 +9,8 @@
 #include "drake/systems/framework/leaf_system.h"
 #include "drake/systems/primitives/adder.h"
 #include "drake/systems/primitives/pass_through.h"
+#include "drake/systems/primitives/constant_vector_source.h"
+#include "systems/vector_scope.h"
 
 namespace drake {
 namespace examples {
@@ -67,8 +69,6 @@ class StateDependentDamper : public LeafSystem<T> {
         tree_.massMatrix(cache).diagonal().array() * stiffness_.array();
     Eigen::ArrayXd damping_gains = 2 * temp.sqrt();
     damping_gains *= damping_ratio_.array();
-    std::cout << "temp" << std::endl;
-    std::cout <<  temp << std::endl;
 
     // Compute damping torque.
     torque->get_mutable_value() = -(damping_gains * v.array()).matrix();
@@ -147,7 +147,17 @@ void KukaTorqueController<T>::SetUp(const VectorX<double>& stiffness,
   input_port_index_commanded_torque_ =
       builder.ExportInput(adder->get_input_port(0));
 
+  auto scope = builder.template AddSystem<dairlib::systems::VectorScope>(adder->get_output_port().size(), "torque controller");
+  builder.Connect(adder->get_output_port(), scope->get_input_port(0));
+
+  Eigen::VectorXd constTorqueValues(7);
+  constTorqueValues << 0, 0, 0, 0, 0, 0, 0;
+
+  auto constant_source = builder.template AddSystem<drake::systems::ConstantVectorSource<T>>(constTorqueValues);
+
+
   // Exposes controller output.
+  // output_port_index_control_ = builder.ExportOutput(gravity_comp->get_output_port(0));
   output_port_index_control_ = builder.ExportOutput(adder->get_output_port());
 
   builder.BuildInto(this);
