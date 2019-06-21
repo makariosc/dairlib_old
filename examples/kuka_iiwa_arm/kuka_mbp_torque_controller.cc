@@ -1,16 +1,15 @@
-// A rewrite of Drake's kuka_torque_controller updated for MultiBodyPlant.
-
-#include "systems/controllers/kuka_mbp_torque_controller.h"
-
+// A rewrite of Drake's kuka_torque_controller updated with a MultiBodyPlant.
 #include <utility>
-#include <vector>
 
+#include <vector>
 #include "drake/systems/controllers/inverse_dynamics.h"
 #include "drake/systems/controllers/pid_controller.h"
 #include "drake/systems/framework/diagram_builder.h"
 #include "drake/systems/framework/leaf_system.h"
 #include "drake/systems/primitives/adder.h"
 #include "drake/systems/primitives/pass_through.h"
+
+#include "examples/kuka_iiwa_arm/kuka_mbp_torque_controller.h"
 #include "systems/vector_scope.h"
 
 namespace dairlib {

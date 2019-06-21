@@ -41,7 +41,7 @@
 #include "drake/multibody/plant/multibody_plant.h"
 #include "drake/lcmt_iiwa_command.hpp"
 #include "drake/lcmt_iiwa_status.hpp"
-#include "systems/controllers/kuka_mbp_torque_controller.h"
+#include "examples/kuka_iiwa_arm/kuka_mbp_torque_controller.h"
 #include "drake/systems/primitives/constant_value_source.h"
 #include "systems/vector_scope.h"
 
@@ -184,7 +184,7 @@ int DoMain() {
   // Demux is for separating q and v from state output port.
   builder.Connect(world_plant->get_state_output_port(iiwa_model),
                   demux->get_input_port(0));
-                  
+
   // Connecting outputs to iiwa state broadcaster
   builder.Connect(demux->get_output_port(0),
                   iiwa_status->get_position_measured_input_port());
