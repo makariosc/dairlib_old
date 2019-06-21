@@ -11,30 +11,18 @@
 #include <utility>
 
 #include "drake/common/find_resource.h"
-#include "drake/geometry/dev/render/render_engine_vtk.h"
 #include "drake/geometry/dev/scene_graph.h"
 #include "drake/geometry/geometry_visualization.h"
-#include "drake/manipulation/schunk_wsg/schunk_wsg_constants.h"
-#include "drake/manipulation/schunk_wsg/schunk_wsg_position_controller.h"
 #include "drake/manipulation/kuka_iiwa/iiwa_command_receiver.h"
 #include <drake/manipulation/kuka_iiwa/iiwa_status_sender.h>
 #include "drake/math/rigid_transform.h"
-#include "drake/math/rotation_matrix.h"
 #include "drake/multibody/parsing/parser.h"
-#include "drake/multibody/tree/prismatic_joint.h"
 #include "drake/multibody/tree/revolute_joint.h"
 #include "drake/multibody/tree/multibody_tree.h"
-#include "drake/systems/controllers/inverse_dynamics_controller.h"
 #include "drake/systems/framework/diagram_builder.h"
-#include "drake/systems/primitives/adder.h"
-#include "drake/systems/primitives/constant_vector_source.h"
 #include "drake/systems/primitives/demultiplexer.h"
 #include "drake/systems/primitives/discrete_derivative.h"
-#include "drake/systems/primitives/linear_system.h"
-#include "drake/systems/primitives/matrix_gain.h"
-#include "drake/systems/primitives/pass_through.h"
 #include "drake/systems/analysis/simulator.h"
-#include "drake/systems/sensors/dev/rgbd_camera.h"
 #include "drake/systems/lcm/lcm_interface_system.h"
 #include "drake/systems/lcm/lcm_publisher_system.h"
 #include "drake/systems/lcm/lcm_subscriber_system.h"
@@ -42,7 +30,6 @@
 #include "drake/lcmt_iiwa_command.hpp"
 #include "drake/lcmt_iiwa_status.hpp"
 #include "examples/kuka_iiwa_arm/kuka_mbp_torque_controller.h"
-#include "drake/systems/primitives/constant_value_source.h"
 #include "systems/vector_scope.h"
 
 namespace dairlib {
@@ -54,16 +41,13 @@ namespace kuka_iiwa_arm {
  using drake::geometry::SceneGraph;
  using drake::math::RigidTransform;
  using drake::math::RollPitchYaw;
- using drake::math::RotationMatrix;
  using drake::multibody::Joint;
  using drake::multibody::MultibodyPlant;
- using drake::multibody::PrismaticJoint;
  using drake::multibody::RevoluteJoint;
  using drake::multibody::SpatialInertia;
  using drake::manipulation::kuka_iiwa::IiwaCommandReceiver;
  using drake::manipulation::kuka_iiwa::IiwaStatusSender;
  using drake::systems::StateInterpolatorWithDiscreteDerivative;
- using drake::systems::ConstantVectorSource;
  using drake::multibody::ModelInstanceIndex;
 
 int DoMain() {
