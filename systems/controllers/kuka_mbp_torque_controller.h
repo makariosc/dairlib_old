@@ -32,7 +32,7 @@ class KukaTorqueController
       public drake::systems::controllers::StateFeedbackControllerInterface<T> {
  public:
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(KukaTorqueController)
-  KukaTorqueController(std::unique_ptr<MultibodyPlant<T>> plant,
+  KukaTorqueController(std::unique_ptr<drake::multibody::MultibodyPlant<T>> plant,
                        const VectorX<double>& stiffness,
                        const VectorX<double>& damping);
 

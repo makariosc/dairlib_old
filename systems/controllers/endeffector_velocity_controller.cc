@@ -71,8 +71,8 @@ void EndEffectorVelocityController::CalcOutputTorques(
   // Multiplying J^t x force to get torque outputs, then storing them in the output vector
   output->set_value(frameSpatialVelocityJacobian.transpose() * generalizedForces); // (7 x 6) * (6 x 1) = 7 x 1
   //output->set_value(manualout);
-  std::cout << "torques" << std::endl;
-  std::cout << frameSpatialVelocityJacobian.transpose() * generalizedForces << std::endl;
+  // std::cout << "torques" << std::endl;
+  // std::cout << frameSpatialVelocityJacobian.transpose() * generalizedForces << std::endl;
   // Getting last element for timestep since timestep is stored in last element
   //output->set_timestamp(this->EvalVectorInput(context, joint_position_measured_port)->GetAtIndex(NUM_JOINTS));
 }

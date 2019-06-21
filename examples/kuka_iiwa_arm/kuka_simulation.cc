@@ -23,6 +23,7 @@
 #include "drake/multibody/parsing/parser.h"
 #include "drake/multibody/tree/prismatic_joint.h"
 #include "drake/multibody/tree/revolute_joint.h"
+#include "drake/multibody/tree/multibody_tree.h"
 #include "drake/systems/controllers/inverse_dynamics_controller.h"
 #include "drake/systems/framework/diagram_builder.h"
 #include "drake/systems/primitives/adder.h"
@@ -37,120 +38,187 @@
 #include "drake/systems/lcm/lcm_interface_system.h"
 #include "drake/systems/lcm/lcm_publisher_system.h"
 #include "drake/systems/lcm/lcm_subscriber_system.h"
+#include "drake/multibody/plant/multibody_plant.h"
 #include "drake/lcmt_iiwa_command.hpp"
 #include "drake/lcmt_iiwa_status.hpp"
 #include "systems/controllers/kuka_mbp_torque_controller.h"
 #include "drake/systems/primitives/constant_value_source.h"
 #include "systems/vector_scope.h"
 
-namespace drake {
+namespace dairlib {
 namespace examples {
 namespace kuka_iiwa_arm {
 
  using Eigen::Vector3d;
  using Eigen::VectorXd;
- using geometry::SceneGraph;
- using math::RigidTransform;
- using math::RollPitchYaw;
- using math::RotationMatrix;
- using multibody::Joint;
- using multibody::MultibodyPlant;
- using multibody::PrismaticJoint;
- using multibody::RevoluteJoint;
- using multibody::SpatialInertia;
- using manipulation::kuka_iiwa::IiwaCommandReceiver;
- using manipulation::kuka_iiwa::IiwaStatusSender;
- using systems::StateInterpolatorWithDiscreteDerivative;
- using systems::ConstantVectorSource;
-
-// Load a SDF model and weld it to the MultibodyPlant.
-// @param model_path Full path to the sdf model file. i.e. with
-// FindResourceOrThrow
-// @param model_name Name of the added model instance.
-// @param parent Frame P from the MultibodyPlant to which the new model is
-// welded to.
-// @param child_frame_name Defines frame C (the child frame), assumed to be
-// present in the model being added.
-// @param X_PC Transformation of frame C relative to frame P.
-template <typename T>
-multibody::ModelInstanceIndex AddAndWeldModelFrom(
-    const std::string& model_path, const std::string& model_name,
-    const multibody::Frame<T>& parent, const std::string& child_frame_name,
-    const RigidTransform<double>& X_PC, MultibodyPlant<T>* plant) {
-  DRAKE_THROW_UNLESS(!plant->HasModelInstanceNamed(model_name));
-
-  multibody::Parser parser(plant);
-  const multibody::ModelInstanceIndex new_model =
-      parser.AddModelFromFile(model_path, model_name);
-  const auto& child_frame = plant->GetFrameByName(child_frame_name, new_model);
-  plant->WeldFrames(parent, child_frame, X_PC);
-  return new_model;
-}
-
-void SetTorqueControlledIiwaGains(Eigen::VectorXd* stiffness,
-                                  Eigen::VectorXd* damping_ratio) {
-  // All the gains are for directly generating torques. These gains are set
-  // according to the values in the drake-iiwa-driver repository:
-  // https://github.com/RobotLocomotion/drake-iiwa-driver/blob/master/kuka-driver/sunrise_1.11/DrakeFRITorqueDriver.java NOLINT
-
-  // The spring stiffness in Nm/rad.
-  stiffness->resize(7);
-  *stiffness << 0, 0, 0, 0, 0, 0, 0;
-
-  // A dimensionless damping ratio. See KukaTorqueController for details.
-  damping_ratio->resize(stiffness->size());
-  damping_ratio->setConstant(1.0);
-}
+ using drake::geometry::SceneGraph;
+ using drake::math::RigidTransform;
+ using drake::math::RollPitchYaw;
+ using drake::math::RotationMatrix;
+ using drake::multibody::Joint;
+ using drake::multibody::MultibodyPlant;
+ using drake::multibody::PrismaticJoint;
+ using drake::multibody::RevoluteJoint;
+ using drake::multibody::SpatialInertia;
+ using drake::manipulation::kuka_iiwa::IiwaCommandReceiver;
+ using drake::manipulation::kuka_iiwa::IiwaStatusSender;
+ using drake::systems::StateInterpolatorWithDiscreteDerivative;
+ using drake::systems::ConstantVectorSource;
+ using drake::multibody::ModelInstanceIndex;
 
 int DoMain() {
 
-  std::unique_ptr<multibody::MultibodyPlant<double>> owned_world_plant = std::make_unique<MultibodyPlant<double>>(0.002);
-  std::unique_ptr<geometry::SceneGraph<double>> owned_scene_graph = std::make_unique<geometry::SceneGraph<double>>();
+  std::unique_ptr<drake::multibody::MultibodyPlant<double>> owned_world_plant =
+      std::make_unique<drake::multibody::MultibodyPlant<double>>(0.0001);
+  std::unique_ptr<drake::multibody::MultibodyPlant<double>> owned_controller_plant =
+      std::make_unique<drake::multibody::MultibodyPlant<double>>();
+  std::unique_ptr<drake::geometry::SceneGraph<double>> owned_scene_graph =
+      std::make_unique<drake::geometry::SceneGraph<double>>();
 
-  multibody::MultibodyPlant<double>* world_plant = owned_world_plant.get();
-  geometry::SceneGraph<double>* scene_graph = owned_scene_graph.get();
+  drake::multibody::MultibodyPlant<double>* world_plant =
+      owned_world_plant.get();
+  drake::multibody::MultibodyPlant<double>* controller_plant =
+      owned_controller_plant.get();
+  drake::geometry::SceneGraph<double>* scene_graph =
+      owned_scene_graph.get();
   world_plant->RegisterAsSourceForSceneGraph(scene_graph);
 
-  std::unique_ptr<multibody::MultibodyPlant<double>> owned_controller_plant = std::make_unique<MultibodyPlant<double>>();
-
-  // Adds a plant.
+  // Get the Iiwa model. TODO: grab this from pegged drake libraries
   const char* kModelPath =
-  "drake/manipulation/models/iiwa_description/iiwa7/"
-    "iiwa7_with_box_collision.sdf";
-  const std::string kuka_urdf = FindResourceOrThrow(kModelPath);
-
+      "drake/manipulation/models/iiwa_description/iiwa7/iiwa7_no_collision.sdf";
+  const std::string kuka_urdf = drake::FindResourceOrThrow(kModelPath);
   const auto X_WI = RigidTransform<double>::Identity();
-  auto iiwa_instance = AddAndWeldModelFrom(kuka_urdf, "iiwa", world_plant->world_frame(), "iiwa_link_0", X_WI, world_plant);
 
-  // Creates the plant to go in the simulation
-  multibody::Parser parser(owned_controller_plant.get());
-  const auto controller_iiwa_model = parser.AddModelFromFile(kuka_urdf, "iiwa");
-  owned_controller_plant->WeldFrames(
-   owned_controller_plant->world_frame(),
-   owned_controller_plant->GetFrameByName("iiwa_link_0", controller_iiwa_model),
-   X_WI);
+  // Add the Iiwa model to the world model
+  drake::multibody::Parser world_plant_parser(world_plant);
+  const drake::multibody::ModelInstanceIndex iiwa_model =
+      world_plant_parser.AddModelFromFile(kuka_urdf, "iiwa");
+  world_plant->WeldFrames(owned_world_plant->world_frame(),
+      owned_world_plant->GetFrameByName("iiwa_link_0", iiwa_model), X_WI);
+
+  // Create and add a plant to the controller-specific model
+  drake::multibody::Parser controller_plant_parser(controller_plant);
+  const auto controller_iiwa_model = controller_plant_parser.AddModelFromFile(
+      kuka_urdf, "iiwa");
+  owned_controller_plant->WeldFrames(owned_controller_plant->world_frame(),
+      owned_controller_plant->GetFrameByName("iiwa_link_0", controller_iiwa_model),
+      X_WI);
+
+  // Finalize the plants to begin adding them to a system
   owned_controller_plant->Finalize();
-
-
-
-
   world_plant->Finalize();
 
-  const int num_joints = world_plant->num_positions();
+  const int num_iiwa_positions = world_plant->num_positions();
 
+  drake::systems::DiagramBuilder<double> builder;
+  builder.AddSystem(std::move(owned_world_plant));
+  builder.AddSystem(std::move(owned_scene_graph));
+
+  auto lcm = builder.AddSystem<drake::systems::lcm::LcmInterfaceSystem>();
+
+  // Create the command subscriber and status publisher.
+  auto command_sub = builder.AddSystem(
+      drake::systems::lcm::LcmSubscriberSystem::Make<drake::lcmt_iiwa_command>(
+          "IIWA_COMMAND", lcm));
+  command_sub->set_name("command_subscriber");
+  auto command_receiver =
+      builder.AddSystem<IiwaCommandReceiver>(num_iiwa_positions);
+  command_receiver->set_name("command_receiver");
+
+  // LCM publisher system
   const double kIiwaLcmStatusPeriod = 0.005;
+  auto iiwa_status_publisher = builder.AddSystem(
+      drake::systems::lcm::LcmPublisherSystem::Make<drake::lcmt_iiwa_status>(
+          "IIWA_STATUS", lcm, kIiwaLcmStatusPeriod /* publish period */));
 
+  // Torque Controller-- includes virtual springs and damping.
+  VectorXd stiffness, damping_ratio;
 
-  VectorX<double> q0_iiwa(num_joints);
+  // The virtual spring stiffness in Nm/rad.
+  stiffness.resize(7);
+  stiffness << 1, 1, 1, 1, 1, 1, 1;
+
+  // A dimensionless damping ratio. See KukaTorqueController for details.
+  damping_ratio.resize(stiffness.size());
+  damping_ratio.setConstant(1.0);
+  stiffness = stiffness.replicate(1, 1);
+  damping_ratio = damping_ratio.replicate(1, 1);
+  auto iiwa_controller = builder.AddSystem<
+      dairlib::systems::KukaTorqueController<double>>(
+          std::move(owned_controller_plant), stiffness, damping_ratio);
+
+  // Creating status sender
+  auto iiwa_status = builder.AddSystem<IiwaStatusSender>(num_iiwa_positions);
+
+  // Creating system to approximate desired state command from a discrete
+  // derivative of the position command input port.
+  auto desired_state_from_position = builder.AddSystem<
+      drake::systems::StateInterpolatorWithDiscreteDerivative<double>>(
+          7, world_plant->time_step());
+
+  // Demuxing system state for status publisher
+  auto demux = builder.AddSystem<drake::systems::Demultiplexer<double>>(
+     2 * num_iiwa_positions, num_iiwa_positions);
+  // auto scope = builder.AddSystem<dairlib::systems::VectorScope>(
+  //     world_plant->get_state_output_port(iiwa_model).size(), "world plant state");
+
+  builder.Connect(command_sub->get_output_port(),
+                  command_receiver->get_input_port());
+
+  // Connecting iiwa input ports
+  builder.Connect(iiwa_controller->get_output_port_control(),
+                  world_plant->get_actuation_input_port(iiwa_model));
+
+  // Interpolating desired positions into desired velocities for controller.
+  builder.Connect(command_receiver->get_commanded_position_output_port(),
+                  desired_state_from_position->get_input_port());
+
+  // Connecting iiwa controller input ports
+  builder.Connect(world_plant->get_state_output_port(iiwa_model),
+                  iiwa_controller->get_input_port_estimated_state());
+  builder.Connect(desired_state_from_position->get_output_port(),
+                  iiwa_controller->get_input_port_desired_state());
+  builder.Connect(command_receiver->get_commanded_torque_output_port(),
+                  iiwa_controller->get_input_port_commanded_torque());
+
+  // Demux is for separating q and v from state output port.
+  builder.Connect(world_plant->get_state_output_port(iiwa_model),
+                  demux->get_input_port(0));
+                  
+  // Connecting outputs to iiwa state broadcaster
+  builder.Connect(demux->get_output_port(0),
+                  iiwa_status->get_position_measured_input_port());
+  builder.Connect(demux->get_output_port(1),
+                  iiwa_status->get_velocity_estimated_input_port());
+  builder.Connect(command_receiver->get_output_port(0),
+                  iiwa_status->get_position_commanded_input_port());
+  builder.Connect(iiwa_controller->get_output_port_control(),
+                  iiwa_status->get_torque_commanded_input_port());
+  builder.Connect(iiwa_controller->get_output_port_control(),
+                  iiwa_status->get_torque_measured_input_port());
+  builder.Connect(world_plant->get_generalized_contact_forces_output_port(iiwa_model),
+                  iiwa_status->get_torque_external_input_port());
+  builder.Connect(iiwa_status->get_output_port(),
+                  iiwa_status_publisher->get_input_port());
+
+  // Connecting world to scene graph components for visualization
+  builder.Connect(
+      world_plant->get_geometry_poses_output_port(),
+      scene_graph->get_source_pose_port(world_plant->get_source_id().value()));
+  builder.Connect(scene_graph->get_query_output_port(),
+                  world_plant->get_geometry_query_input_port());
+
+  drake::geometry::ConnectDrakeVisualizer(&builder, *scene_graph,
+      scene_graph->get_pose_bundle_output_port());
+
+  // Set the iiwa default joint configuration.
+  drake::VectorX<double> q0_iiwa(num_iiwa_positions);
   q0_iiwa << 0, 0, 0, 0, 0, 0, 0;
-
-  // Set the iiwa default configuration.
-  const auto iiwa_joint_indices =
-      world_plant->GetJointIndices(iiwa_instance);
+  const auto iiwa_joint_indices = world_plant->GetJointIndices(iiwa_model);
   int q0_index = 0;
   for (const auto joint_index : iiwa_joint_indices) {
-    multibody::RevoluteJoint<double>* joint =
-        dynamic_cast<multibody::RevoluteJoint<double>*>(
+    drake::multibody::RevoluteJoint<double>* joint =
+        dynamic_cast<drake::multibody::RevoluteJoint<double>*>(
             &world_plant->get_mutable_joint(joint_index));
     // Note: iiwa_joint_indices includes the WeldJoint at the base.  Only set
     // the RevoluteJoints.
@@ -159,103 +227,9 @@ int DoMain() {
     }
   }
 
-  systems::DiagramBuilder<double> builder;
-  builder.AddSystem(std::move(owned_world_plant));
-  builder.AddSystem(std::move(owned_scene_graph));
-
-  auto lcm = builder.AddSystem<systems::lcm::LcmInterfaceSystem>();
-
-  // Create the command subscriber and status publisher.
-  auto command_sub = builder.AddSystem(
-      systems::lcm::LcmSubscriberSystem::Make<drake::lcmt_iiwa_command>(
-          "IIWA_COMMAND", lcm));
-  command_sub->set_name("command_subscriber");
-  auto command_receiver =
-      builder.AddSystem<IiwaCommandReceiver>(num_joints);
-  command_receiver->set_name("command_receiver");
-  auto desired_state_from_position = builder.AddSystem<
-      StateInterpolatorWithDiscreteDerivative<double>>(
-          num_joints, kIiwaLcmStatusPeriod);
-  desired_state_from_position->set_name("desired_state_from_position");
-
-
-  VectorX<double> stiffness, damping_ratio;
-  SetTorqueControlledIiwaGains(&stiffness, &damping_ratio);
-  damping_ratio = damping_ratio.replicate(1, 1);
-  stiffness = stiffness.replicate(1, 1);
-
-  auto iiwa_controller = builder.AddSystem<dairlib::systems::KukaTorqueController<double>>(std::move(owned_controller_plant), stiffness, damping_ratio);
-  auto test = builder.AddSystem<dairlib::systems::VectorScope>(iiwa_controller->get_output_port_control().size(), "output port control");
-
-  Eigen::VectorXd constTorqueValues(7);
-  constTorqueValues << 0, 0, 0, 0, 0, 0, 0;
-
-  auto constant_source = builder.AddSystem<ConstantVectorSource<double>>(constTorqueValues);
-
-  // Creating status sender
-  auto iiwa_status = builder.AddSystem<IiwaStatusSender>(num_joints);
-
-  builder.Connect(command_sub->get_output_port(),
-                        command_receiver->get_input_port());
-  builder.Connect(command_receiver->get_commanded_position_output_port(),
-                        desired_state_from_position->get_input_port());
-  builder.Connect(world_plant->get_state_output_port(),
-                  iiwa_controller->get_input_port_estimated_state());
-  builder.Connect(command_receiver->get_output_port(1),
-                  iiwa_controller->get_input_port_commanded_torque());
-
-  builder.Connect(iiwa_controller->get_output_port_control(),
-                  test->get_input_port(0));
-
-  // builder.Connect(iiwa_controller->get_output_port_control(),
-  //                 world_plant->get_actuation_input_port());
-
-  builder.Connect(constant_source->get_output_port(),
-                  world_plant->get_actuation_input_port());
-
-  builder.Connect(iiwa_controller->get_output_port_control(),
-                  iiwa_status->get_position_commanded_input_port());
-
-  // Demuxing system state for status publisher
-  const int num_iiwa_positions = world_plant->num_positions();
-
-  auto demux = builder.AddSystem<systems::Demultiplexer<double>>(
-     2 * num_iiwa_positions, num_iiwa_positions);
-  builder.Connect(
-     world_plant->get_state_output_port(iiwa_instance), // Why is this so ridiculously large????
-     demux->get_input_port(0));
-
-  builder.Connect(demux->get_output_port(0),
-                  iiwa_status->get_position_measured_input_port());
-  builder.Connect(demux->get_output_port(1),
-                  iiwa_status->get_velocity_estimated_input_port());
-
-  builder.Connect(iiwa_controller->get_output_port_control(),
-                  iiwa_status->get_torque_commanded_input_port());
-
-  builder.Connect(iiwa_controller->get_output_port_control(),
-                  iiwa_status->get_torque_measured_input_port());
-  builder.Connect(world_plant->get_generalized_contact_forces_output_port(iiwa_instance),
-                  iiwa_status->get_torque_external_input_port());
-
-  auto iiwa_status_publisher = builder.AddSystem(
-      systems::lcm::LcmPublisherSystem::Make<drake::lcmt_iiwa_status>(
-          "IIWA_STATUS", lcm, 0.005 /* publish period */));
-  builder.Connect(iiwa_status->get_output_port(),
-                  iiwa_status_publisher->get_input_port());
-
-  builder.Connect(
-      world_plant->get_geometry_poses_output_port(),
-      scene_graph->get_source_pose_port(world_plant->get_source_id().value()));
-  builder.Connect(scene_graph->get_query_output_port(),
-                  world_plant->get_geometry_query_input_port());
-
-  geometry::ConnectDrakeVisualizer(&builder, *scene_graph, scene_graph->get_pose_bundle_output_port());
-
   auto diagram = builder.Build();
 
-  systems::Simulator<double> simulator(*diagram);
-
+  drake::systems::Simulator<double> simulator(*diagram);
   simulator.set_publish_every_time_step(false);
   simulator.set_target_realtime_rate(1.0);
   simulator.AdvanceTo(std::numeric_limits<double>::infinity());
@@ -268,5 +242,5 @@ int DoMain() {
 }  // namespace drake
 
 int main(int argc, char* argv[]) {
-  return drake::examples::kuka_iiwa_arm::DoMain();
+  return dairlib::examples::kuka_iiwa_arm::DoMain();
 }

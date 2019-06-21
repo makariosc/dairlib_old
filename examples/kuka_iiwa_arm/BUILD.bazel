@@ -20,7 +20,6 @@ cc_binary(
     name = "kuka_simulation",
     srcs = ["kuka_simulation.cc"],
     data = [
-        "@drake//examples/kuka_iiwa_arm:models",
         "@drake//manipulation/models/iiwa_description:models",
     ],
     deps = [

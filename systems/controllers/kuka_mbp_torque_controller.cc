@@ -85,6 +85,8 @@ void KukaTorqueController<T>::SetUp(const VectorX<double>& stiffness,
                                     const VectorX<double>& damping_ratio) {
   DiagramBuilder<T> builder;
   const MultibodyPlant<T>& plant = *robot_for_control_;
+  std::cout << plant.num_positions() << std::endl;
+  std::cout << stiffness.size() << std::endl;
   DRAKE_DEMAND(plant.num_positions() == stiffness.size());
   DRAKE_DEMAND(plant.num_positions() == damping_ratio.size());
 
@@ -137,7 +139,7 @@ void KukaTorqueController<T>::SetUp(const VectorX<double>& stiffness,
                   damper->get_input_port(0));
 
   // Connects the gravity compensation, spring, and damper torques to the adder.
-  builder.Connect(gravity_comp->get_output_port(0), adder->get_input_port(1));
+  builder.Connect(gravity_comp->get_output_port_force(), adder->get_input_port(1));
   builder.Connect(spring->get_output_port(0), adder->get_input_port(2));
   builder.Connect(damper->get_output_port(0), adder->get_input_port(3));
 
@@ -154,19 +156,18 @@ void KukaTorqueController<T>::SetUp(const VectorX<double>& stiffness,
       builder.ExportInput(adder->get_input_port(0));
 
   // Exposes controller output.
-  //output_port_index_control_ = builder.ExportOutput(gravity_comp->get_output_port(0));
+  output_port_index_control_ = builder.ExportOutput(gravity_comp->get_output_port(0));
   output_port_index_control_ = builder.ExportOutput(adder->get_output_port());
 
   auto scope = builder.template AddSystem<dairlib::systems::VectorScope>(adder->get_output_port().size(), "torque output");
   builder.Connect(adder->get_output_port(), scope->get_input_port(0));
-
 
   builder.BuildInto(this);
 }
 
 template <typename T>
 KukaTorqueController<T>::KukaTorqueController(
-    std::unique_ptr<MultibodyPlant<T>> plant, const VectorX<double>& stiffness,
+    std::unique_ptr<drake::multibody::MultibodyPlant<T>> plant, const VectorX<double>& stiffness,
     const VectorX<double>& damping) {
   robot_for_control_ = std::move(plant);
   SetUp(stiffness, damping);
