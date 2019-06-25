@@ -8,6 +8,8 @@
 #include "drake/systems/framework/leaf_system.h"
 #include "drake/systems/primitives/adder.h"
 #include "drake/systems/primitives/pass_through.h"
+#include "drake/multibody/plant/multibody_plant.h"
+#include "drake/systems/primitives/constant_vector_source.h"
 
 #include "examples/kuka_iiwa_arm/kuka_mbp_torque_controller.h"
 #include "systems/vector_scope.h"
@@ -113,9 +115,11 @@ void KukaTorqueController<T>::SetUp(const VectorX<double>& stiffness,
   // Adds virtual springs.
   Eigen::VectorXd kd(dim);
   Eigen::VectorXd ki(dim);
+  Eigen::VectorXd kp(dim);
   kd.setZero();
   ki.setZero();
-  auto spring = builder.template AddSystem<PidController<T>>(stiffness, kd, ki);
+  kp.setZero();
+  auto spring = builder.template AddSystem<PidController<T>>(kp, kd, ki);
 
   // Adds virtual damper.
   auto damper = builder.template AddSystem<StateDependentDamper<T>>(
@@ -155,7 +159,6 @@ void KukaTorqueController<T>::SetUp(const VectorX<double>& stiffness,
       builder.ExportInput(adder->get_input_port(0));
 
   // Exposes controller output.
-  output_port_index_control_ = builder.ExportOutput(gravity_comp->get_output_port(0));
   output_port_index_control_ = builder.ExportOutput(adder->get_output_port());
 
   auto scope = builder.template AddSystem<dairlib::systems::VectorScope>(adder->get_output_port().size(), "torque output");
