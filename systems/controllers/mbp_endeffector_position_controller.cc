@@ -95,8 +95,18 @@ void EndEffectorPositionController::CalcOutputTwist(
   MatrixXd angularVelocityWF = plant_local.CalcRelativeTransform(*plant_context, plant_local.GetFrameByName("iiwa_link_7"), plant_local.world_frame()).rotation() * angularVelocity;
 
   std::cout << x_desired << std::endl;
-  std::cout << "@@@@@@@@@@@@@@@@@@" << std::endl;
+  printf("@@@@@@@@@@@@@@@@@\n");
   std::cout << x_actual << std::endl;
+
+  double linear_speed_limit = 10;
+  // Limit maximum commanded velocities
+  for(int i = 0; i < 3; i++) {
+      double currSpeed = diff(i, 0);
+      if (diff(i, 0) > linear_speed_limit) {
+          diff(i, 0) = linear_speed_limit;
+          std::cout << "Warning: velocity of component " << i <<  " limited from " << currSpeed << " to " << linear_speed_limit << std::endl;
+      }
+  }
 
   MatrixXd twist(6, 1);
   twist << angularVelocityWF, diff;

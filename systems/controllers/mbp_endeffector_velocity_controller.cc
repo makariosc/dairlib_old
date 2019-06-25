@@ -70,8 +70,21 @@ void EndEffectorVelocityController::CalcOutputTorques(
   VectorXd manualout(7);
   manualout << 0, 0, 0, 0, 0, 0, 0;
 
+  VectorXd outTorques(7);
+  outTorques = frameSpatialVelocityJacobian.transpose() * generalizedForces;
+
+  double joint_torque_limit = 0.5;
+  // Limit maximum commanded velocities
+  for(int i = 0; i < 7; i++) {
+      double currSpeed = outTorques(i, 0);
+      if (outTorques(i, 0) > joint_torque_limit) {
+          outTorques(i, 0) = joint_torque_limit;
+          std::cout << "Warning: velocity of component " << i <<  " limited from " << currSpeed << " to " << joint_torque_limit << std::endl;
+      }
+  }
+
   // Multiplying J^t x force to get torque outputs, then storing them in the output vector
-  output->set_value(frameSpatialVelocityJacobian.transpose() * generalizedForces); // (7 x 6) * (6 x 1) = 7 x 1
+  output->set_value(outTorques); // (7 x 6) * (6 x 1) = 7 x 1
   // output->set_value(manualout);
   // std::cout << "torques" << std::endl;
   // std::cout << frameSpatialVelocityJacobian.transpose() * generalizedForces << std::endl;
