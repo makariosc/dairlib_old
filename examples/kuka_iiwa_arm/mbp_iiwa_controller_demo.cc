@@ -9,6 +9,7 @@
 #define NUM_JOINTS 7
 
 #include "drake/common/trajectories/piecewise_polynomial.h"
+#include "drake/systems/lcm/lcm_interface_system.h"
 #include "drake/systems/lcm/lcm_publisher_system.h"
 #include "drake/systems/lcm/lcm_subscriber_system.h"
 #include "drake/lcm/drake_lcm.h"
@@ -32,8 +33,6 @@ namespace dairlib {
 
 int do_main(int argc, char* argv[]) {
 
-  drake::lcm::DrakeLcm lcm;
-  drake::systems::DiagramBuilder<double> builder;
 
   // Creating end effector trajectory
   // TODO make this modular
@@ -103,10 +102,14 @@ int do_main(int argc, char* argv[]) {
   plant->WeldFrames(owned_plant->world_frame(), owned_plant->GetFrameByName("iiwa_link_0"), X_WI);
   owned_plant->Finalize();
 
+  drake::systems::DiagramBuilder<double> builder;
+
+  auto lcm = builder.AddSystem<drake::systems::lcm::LcmInterfaceSystem>();
+
   // Adding status subscriber and receiver blocks
   auto status_subscriber = builder.AddSystem(
     drake::systems::lcm::LcmSubscriberSystem::Make<drake::lcmt_iiwa_status>(
-      "IIWA_STATUS", &lcm));
+      "IIWA_STATUS", lcm));
   auto status_receiver = builder.AddSystem<drake::examples::kuka_iiwa_arm::IiwaStatusReceiver>();
 
   // The coordinates for the end effector with respect to the last joint,
@@ -135,8 +138,8 @@ int do_main(int argc, char* argv[]) {
   auto command_sender = builder.AddSystem<drake::examples::kuka_iiwa_arm::IiwaCommandSender>();
   auto command_publisher = builder.AddSystem(
     drake::systems::lcm::LcmPublisherSystem::Make<drake::lcmt_iiwa_command>(
-      "IIWA_COMMAND", &lcm, 1.0/200.0));
-      
+      "IIWA_COMMAND", lcm, 1.0/200.0));
+
   // Torque Controller-- includes virtual springs and damping.
   VectorXd ConstPositionCommand;
 
@@ -180,7 +183,6 @@ int do_main(int argc, char* argv[]) {
   simulator.set_publish_every_time_step(false);
   simulator.set_target_realtime_rate(1.0);
   simulator.Initialize();
-  lcm.StartReceiveThread();
   simulator.AdvanceTo(ee_trajectory.end_time());
   return 0;
 }
