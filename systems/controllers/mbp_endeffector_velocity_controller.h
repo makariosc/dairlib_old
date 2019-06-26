@@ -6,12 +6,14 @@
 #include "drake/systems/framework/basic_vector.h"
 #include "drake/multibody/parsers/urdf_parser.h"
 #include "drake/multibody/plant/multibody_plant.h"
+#include "drake/multibody/tree/multibody_tree.h"
 
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using drake::systems::LeafSystem;
 using drake::systems::Context;
 using drake::multibody::MultibodyPlant;
+using drake::multibody::Frame;
 
 namespace dairlib{
 namespace systems{
@@ -25,6 +27,7 @@ class EndEffectorVelocityController : public LeafSystem<double> {
   public:
     // Constructor
     EndEffectorVelocityController(const MultibodyPlant<double>& plant,
+                                  std::string ee_frame_name,
                                   Eigen::Vector3d ee_contact_frame,
                                   int num_joints, double k_d, double k_r);
 
@@ -49,16 +52,14 @@ class EndEffectorVelocityController : public LeafSystem<double> {
     void CalcOutputTorques(const Context<double>& context,
                          BasicVector<double>* output) const;
 
-    Eigen::Vector3d eeContactFrame;
-    Eigen::Translation3d eeContactFrameTranslation;
-    Eigen::Isometry3d eeCFIsometry;
-
-    const MultibodyPlant<double>& plant;
+    const MultibodyPlant<double>& plant_;
+    int num_joints_;
+    const Frame<double>& ee_joint_frame;
+    Eigen::Vector3d ee_contact_frame;
     int joint_position_measured_port;
     int joint_velocity_measured_port;
     int endpoint_twist_commanded_port;
     int endpoint_torque_output_port;
-    int num_joints;
     double k_d;
     double k_r;
 };

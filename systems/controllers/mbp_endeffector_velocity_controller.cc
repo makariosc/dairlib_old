@@ -4,25 +4,25 @@ namespace dairlib{
 namespace systems{
 
 EndEffectorVelocityController::EndEffectorVelocityController(
-    const MultibodyPlant<double>& plant, Eigen::Vector3d ee_contact_frame,
-    int num_joints, double k_d, double k_r) : plant(plant){
+    const MultibodyPlant<double>& plant, std::string ee_frame_name,
+    Eigen::Vector3d ee_contact_frame, int num_joints, double k_d, double k_r)
+    : plant_(plant), num_joints_(num_joints), ee_joint_frame(plant_.GetFrameByName(ee_frame_name)){
 
   // Set up this block's input and output ports
   // Input port values will be accessed via EvalVectorInput() later
   joint_position_measured_port = this->DeclareVectorInputPort(
-      "joint_position_measured", BasicVector<double>(num_joints)).get_index();
+      "joint_position_measured", BasicVector<double>(num_joints_)).get_index();
   joint_velocity_measured_port = this->DeclareVectorInputPort(
-      "joint_velocity_measured", BasicVector<double>(num_joints)).get_index();
+      "joint_velocity_measured", BasicVector<double>(num_joints_)).get_index();
   endpoint_twist_commanded_port = this->DeclareVectorInputPort(
       "endpoint_twist_commanded", BasicVector<double>(6)).get_index();
 
   // Note that this function contains a pointer to the callback function below.
   endpoint_torque_output_port = this->DeclareVectorOutputPort(
-      BasicVector<double>(num_joints),
+      BasicVector<double>(num_joints_),
       &EndEffectorVelocityController::CalcOutputTorques).get_index();
 
-  this->eeContactFrame = ee_contact_frame;
-  this->num_joints = num_joints;
+  this->ee_contact_frame = ee_contact_frame;
   this->k_d = k_d;
   this->k_r = k_r;
 }
@@ -34,21 +34,21 @@ void EndEffectorVelocityController::CalcOutputTorques(
   // We read the above input ports with EvalVectorInput
   // The purpose of CopyToVector().head(NUM_JOINTS) is to remove the timestamp from the vector input ports
   VectorX<double> q = this->EvalVectorInput(context,
-      joint_position_measured_port)->CopyToVector().head(num_joints);
+      joint_position_measured_port)->CopyToVector().head(num_joints_);
 
   VectorX<double> q_dot = this->EvalVectorInput(context,
-      joint_velocity_measured_port)->CopyToVector().head(num_joints);
+      joint_velocity_measured_port)->CopyToVector().head(num_joints_);
 
   VectorX<double> twist_desired = this->EvalVectorInput(context,
       endpoint_twist_commanded_port)->CopyToVector();
 
-  const std::unique_ptr<Context<double>> plant_context = plant.CreateDefaultContext();
-  plant.SetPositions(plant_context.get(), q);
-  plant.SetVelocities(plant_context.get(), q_dot);
+  const std::unique_ptr<Context<double>> plant_context = plant_.CreateDefaultContext();
+  plant_.SetPositions(plant_context.get(), q);
+  plant_.SetVelocities(plant_context.get(), q_dot);
 
   // Calculating the jacobian of the kuka arm
-  Eigen::Matrix<double, 6, 7> frameSpatialVelocityJacobian;
-  plant.CalcFrameGeometricJacobianExpressedInWorld(*plant_context, plant.GetFrameByName("iiwa_link_7"), eeContactFrame, &frameSpatialVelocityJacobian);
+  Eigen::MatrixXd frameSpatialVelocityJacobian(6, num_joints_);
+  plant_.CalcFrameGeometricJacobianExpressedInWorld(*plant_context, ee_joint_frame, ee_contact_frame, &frameSpatialVelocityJacobian);
 
   // Using the jacobian, calculating the actual current velocities of the arm
   MatrixXd twist_actual = frameSpatialVelocityJacobian * q_dot;
@@ -60,17 +60,7 @@ void EndEffectorVelocityController::CalcOutputTorques(
   // Calculating the error
   MatrixXd generalizedForces = gains * (twist_desired - twist_actual);
 
-  std::cout << "frameSpatialVelocityJacobian" << std::endl;
-  std::cout << frameSpatialVelocityJacobian << std::endl;
-  // std::cout << "q_dot" << std::endl;
-  // std::cout << q_dot << std::endl;
-  // std::cout << "generalizedForces:" << std::endl;
-  // std::cout << generalizedForces << std::endl;
-
-  VectorXd manualout(7);
-  manualout << 0, 0, 0, 0, 0, 0, 0;
-
-  VectorXd outTorques(7);
+  VectorXd outTorques(num_joints_);
   outTorques = frameSpatialVelocityJacobian.transpose() * generalizedForces;
 
   double joint_torque_limit = 0.5;

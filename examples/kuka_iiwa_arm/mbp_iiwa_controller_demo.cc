@@ -115,20 +115,15 @@ int do_main(int argc, char* argv[]) {
   Eigen::Vector3d eeContactFrame;
   eeContactFrame << 0.0, 0, 0.09;
 
+  const std::string link_7 = "iiwa_link_7";
 
   // Adding position controller block
   auto position_controller = builder.AddSystem<systems::EndEffectorPositionController>(
-      *plant, ENDEFFECTOR_BODY_ID, eeContactFrame, NUM_JOINTS, K_P, K_OMEGA);
-
-
-  // The coordinates for the end effector with respect to the last joint,
-  // used to determine location of end effector, but in Isometry3d form
-  Eigen::Translation3d eeContactFrameTranslation(0, 0, 0.09);
-  Eigen::Isometry3d eeCFIsometry = Eigen::Isometry3d(eeContactFrameTranslation);
+      *plant, link_7, eeContactFrame, NUM_JOINTS, K_P, K_OMEGA);
 
   // Adding Velocity Controller block
   auto velocity_controller = builder.AddSystem<systems::EndEffectorVelocityController>(
-      *plant, eeContactFrame, NUM_JOINTS, K_D, K_R);
+      *plant, link_7, eeContactFrame, NUM_JOINTS, K_D, K_R);
 
 
   // Adding linear position Trajectory Source

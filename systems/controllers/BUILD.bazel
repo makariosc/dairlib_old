@@ -191,6 +191,7 @@ cc_library(
             "@drake//multibody/plant:plant",
             "@drake//systems/framework:leaf_system",
             "@drake//examples/kuka_iiwa_arm:iiwa_common",
+            "@drake//multibody/tree:tree",
     ]
 
 )
@@ -205,6 +206,7 @@ cc_library(
             "@drake//multibody/plant:plant",
             "@drake//systems/framework:leaf_system",
             "@drake//examples/kuka_iiwa_arm:iiwa_common",
+            "@drake//multibody/tree:tree",
     ]
 
 )
