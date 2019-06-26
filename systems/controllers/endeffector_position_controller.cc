@@ -74,15 +74,18 @@ void EndEffectorPositionController::CalcOutputTwist(
   std::cout << x_actual << std::endl;
 
   // Limit maximum commanded velocities
-  double linear_speed_limit = 10;
-  for(int i = 0; i < 3; i++) {
-	  double currSpeed = diff(i, 0);
-	  if (diff(i, 0) > linear_speed_limit) {
-		  diff(i, 0) = linear_speed_limit;
-		  std::cout << "Warning: velocity of component " << i;
-		  std::cout << " limited from " << currSpeed << " to ";
-		  std::cout << linear_speed_limit << std::endl;
-	  }
+  double linear_speed_limit = 0.5;
+
+  double currVel = sqrt(diff(0, 0)*diff(0, 0) + diff(1, 0)*diff(1, 0) + diff(2, 0)*diff(2, 0));
+
+  if (currVel > linear_speed_limit) {
+      for (int i = 0; i < 3; i++) {
+          diff(i, 0) = diff(i, 0) * (linear_speed_limit/currVel); // Setting max speed to linear_speed_limit
+      }
+      std::cout << "Warning: desired end effector velocity: " << currVel;
+      std::cout << " exceeded limit of " << linear_speed_limit << std::endl;
+      currVel = sqrt(diff(0, 0)*diff(0, 0) + diff(1, 0)*diff(1, 0) + diff(2, 0)*diff(2, 0));
+      std::cout << "Set end effector velocity to " << currVel << std::endl;
   }
 
   MatrixXd twist(6, 1);

@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <math.h>
 
 using Eigen::VectorXd;
 using Eigen::MatrixXd;

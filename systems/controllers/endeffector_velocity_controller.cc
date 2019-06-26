@@ -70,15 +70,19 @@ void EndEffectorVelocityController::CalcOutputTorques(
   outTorques = frameSpatialVelocityJacobian.transpose() * generalizedForces;
 
   // Limit maximum commanded velocities
-  double joint_torque_limit = 0.5;
-  for(int i = 0; i < 7; i++) {
-      double currSpeed = outTorques(i, 0);
-      if (outTorques(i, 0) > joint_torque_limit) {
-          outTorques(i, 0) = joint_torque_limit;
-          std::cout << "Warning: velocity of component " << i;
-          std::cout <<  " limited from " << currSpeed << " to ";
-          std::cout << joint_torque_limit << std::endl;
+  double max_torque_limit = (double) num_joints_;
+  double currVel = 0;
+  for (int i = 0; i < num_joints_; i++) {
+      currVel += outTorques(i, 0)*outTorques(i, 0);
+  }
+  currVel = sqrt(currVel);
+
+  if (currVel > max_torque_limit) {
+      for (int i = 0; i < num_joints_; i++) {
+          outTorques(i, 0) = outTorques(i, 0) * (max_torque_limit/currVel);
       }
+      std::cout << "Warning: l2 norm of desired joint joint torques: " << currVel;
+      std::cout << " exceeded limit of " << max_torque_limit << std::endl;
   }
 
   // Storing them in the output vector
