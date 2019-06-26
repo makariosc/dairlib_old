@@ -8,6 +8,8 @@
 #include "drake/multibody/plant/multibody_plant.h"
 #include "drake/multibody/tree/multibody_tree.h"
 
+#include <math.h>
+
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using drake::systems::LeafSystem;
