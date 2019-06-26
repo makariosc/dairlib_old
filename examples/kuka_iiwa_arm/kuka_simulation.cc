@@ -29,7 +29,7 @@
 #include "drake/multibody/plant/multibody_plant.h"
 #include "drake/lcmt_iiwa_command.hpp"
 #include "drake/lcmt_iiwa_status.hpp"
-#include "examples/kuka_iiwa_arm/kuka_mbp_torque_controller.h"
+#include "examples/kuka_iiwa_arm/kuka_torque_controller.h"
 #include "systems/vector_scope.h"
 
 namespace dairlib {

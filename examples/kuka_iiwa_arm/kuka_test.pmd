@@ -12,7 +12,7 @@ group "1.simulated-robot" {
     }
 
     cmd "1a. rbp simulator" {
-        exec = "bazel-bin/examples/kuka_iiwa_arm/kuka_rbp_simulation";
+        exec = "../drake/bazel-bin/examples/kuka_iiwa_arm/kuka_simulation";
         host = "localhost";
     }
 
