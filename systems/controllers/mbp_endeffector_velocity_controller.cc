@@ -6,7 +6,8 @@ namespace systems{
 EndEffectorVelocityController::EndEffectorVelocityController(
     const MultibodyPlant<double>& plant, std::string ee_frame_name,
     Eigen::Vector3d ee_contact_frame, int num_joints, double k_d, double k_r)
-    : plant_(plant), num_joints_(num_joints), ee_joint_frame(plant_.GetFrameByName(ee_frame_name)){
+    : plant_(plant), num_joints_(num_joints),
+    ee_joint_frame(plant_.GetFrameByName(ee_frame_name)){
 
   // Set up this block's input and output ports
   // Input port values will be accessed via EvalVectorInput() later
@@ -27,12 +28,14 @@ EndEffectorVelocityController::EndEffectorVelocityController(
   this->k_r = k_r;
 }
 
-// Callback for DeclareVectorInputPort. No return value. The parameter 'output' is the output.
-// This function is called many times a second, if I understand correctly.
+// Callback for DeclareVectorInputPort. No return value.
+// The parameter 'output' is the output.
+// This function is called many times a second.
 void EndEffectorVelocityController::CalcOutputTorques(
   const Context<double>& context, BasicVector<double>* output) const {
   // We read the above input ports with EvalVectorInput
-  // The purpose of CopyToVector().head(NUM_JOINTS) is to remove the timestamp from the vector input ports
+  // The purpose of CopyToVector().head(NUM_JOINTS) is to remove the timestamp
+  // from the vector input ports
   VectorX<double> q = this->EvalVectorInput(context,
       joint_position_measured_port)->CopyToVector().head(num_joints_);
 
@@ -48,7 +51,9 @@ void EndEffectorVelocityController::CalcOutputTorques(
 
   // Calculating the jacobian of the kuka arm
   Eigen::MatrixXd frameSpatialVelocityJacobian(6, num_joints_);
-  plant_.CalcFrameGeometricJacobianExpressedInWorld(*plant_context, ee_joint_frame, ee_contact_frame, &frameSpatialVelocityJacobian);
+  plant_.CalcFrameGeometricJacobianExpressedInWorld(
+      *plant_context, ee_joint_frame, ee_contact_frame,
+      &frameSpatialVelocityJacobian);
 
   // Using the jacobian, calculating the actual current velocities of the arm
   MatrixXd twist_actual = frameSpatialVelocityJacobian * q_dot;
@@ -60,26 +65,25 @@ void EndEffectorVelocityController::CalcOutputTorques(
   // Calculating the error
   MatrixXd generalizedForces = gains * (twist_desired - twist_actual);
 
+  // Multiplying J^t x force to get torque outputs
   VectorXd outTorques(num_joints_);
   outTorques = frameSpatialVelocityJacobian.transpose() * generalizedForces;
 
-  double joint_torque_limit = 0.5;
   // Limit maximum commanded velocities
+  double joint_torque_limit = 0.5;
   for(int i = 0; i < 7; i++) {
       double currSpeed = outTorques(i, 0);
       if (outTorques(i, 0) > joint_torque_limit) {
           outTorques(i, 0) = joint_torque_limit;
-          std::cout << "Warning: velocity of component " << i <<  " limited from " << currSpeed << " to " << joint_torque_limit << std::endl;
+          std::cout << "Warning: velocity of component " << i;
+          std::cout <<  " limited from " << currSpeed << " to ";
+          std::cout << joint_torque_limit << std::endl;
       }
   }
 
-  // Multiplying J^t x force to get torque outputs, then storing them in the output vector
+  // Storing them in the output vector
   output->set_value(outTorques); // (7 x 6) * (6 x 1) = 7 x 1
-  // output->set_value(manualout);
-  // std::cout << "torques" << std::endl;
-  // std::cout << frameSpatialVelocityJacobian.transpose() * generalizedForces << std::endl;
-  // Getting last element for timestep since timestep is stored in last element
-  //output->set_timestamp(this->EvalVectorInput(context, joint_position_measured_port)->GetAtIndex(NUM_JOINTS));
+
 }
 
 } // namespace systems

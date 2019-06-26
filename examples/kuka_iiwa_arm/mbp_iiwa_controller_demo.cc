@@ -7,7 +7,6 @@
 #define K_R 0.3
 
 #define NUM_JOINTS 7
-#define ENDEFFECTOR_BODY_ID 10
 
 #include "drake/common/trajectories/piecewise_polynomial.h"
 #include "drake/systems/lcm/lcm_publisher_system.h"
@@ -137,13 +136,7 @@ int do_main(int argc, char* argv[]) {
   auto command_publisher = builder.AddSystem(
     drake::systems::lcm::LcmPublisherSystem::Make<drake::lcmt_iiwa_command>(
       "IIWA_COMMAND", &lcm, 1.0/200.0));
-  // Setting command publisher publish period
-  //command_publisher->set_publish_period(1.0/200.0);
-
-  // auto scope = builder.AddSystem<dairlib::systems::VectorScope>(status_receiver->get_position_measured_output_port().size(), "q_in");
-  //
-  // builder.Connect(status_receiver->get_position_measured_output_port(), scope->get_input_port(0));
-
+      
   // Torque Controller-- includes virtual springs and damping.
   VectorXd ConstPositionCommand;
 

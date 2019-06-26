@@ -1,5 +1,3 @@
-#define WORLDFRAME_ID 0
-
 #include "systems/controllers/mbp_endeffector_position_controller.h"
 
 namespace dairlib{
@@ -8,7 +6,9 @@ namespace systems{
 EndEffectorPositionController::EndEffectorPositionController(
 	const MultibodyPlant<double>& plant, std::string ee_frame_name,
 	Eigen::Vector3d ee_contact_frame, int num_joints, double k_p, double k_omega)
-	: plant_(plant), plant_world_frame(plant_.world_frame()), ee_contact_frame_(ee_contact_frame), ee_joint_frame(plant_.GetFrameByName(ee_frame_name)){
+	: plant_(plant), plant_world_frame(plant_.world_frame()),
+	ee_contact_frame_(ee_contact_frame),
+	ee_joint_frame(plant_.GetFrameByName(ee_frame_name)){
 
   // Set up this block's input and output ports
   // Input port values will be accessed via EvalVectorInput() later
@@ -87,8 +87,6 @@ void EndEffectorPositionController::CalcOutputTwist(
 
   MatrixXd twist(6, 1);
   twist << angularVelocityWF, diff;
-  // std::cout << "twist:" << std::endl;
-  // std::cout << twist << std::endl;
   output->set_value(twist);
 }
 
