@@ -198,7 +198,7 @@ int DoMain() {
 
   // Set the iiwa default joint configuration.
   drake::VectorX<double> q0_iiwa(num_iiwa_positions + num_iiwa_velocities);
-  q0_iiwa << 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+  q0_iiwa << 0, 0.75, 0, -1.7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
 
   drake::systems::Context<double>& context =
       diagram->GetMutableSubsystemContext(*world_plant,
