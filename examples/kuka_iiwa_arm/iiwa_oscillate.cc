@@ -85,7 +85,7 @@ int do_main(int argc, char* argv[]) {
       MAX_VELOCITY, num_iiwa_joints);
 
   Eigen::VectorXd zeros_seven = Eigen::VectorXd::Zero(7);
-  auto constant_position_src = builder.AddSystem<drake::systems::ConstantVectorSource>(zeros_seven);
+  auto constant_zeros_src = builder.AddSystem<drake::systems::ConstantVectorSource>(zeros_seven);
 
   builder.Connect(zeros_low_source->get_output_port(),
                   mux->get_input_port(0));
@@ -97,7 +97,7 @@ int do_main(int argc, char* argv[]) {
   builder.Connect(status_subscriber->get_output_port(),
                   status_receiver->get_input_port());
 
-  builder.Connect(mux->get_output_port(0),
+  builder.Connect(constant_zeros_src->get_output_port(),
                   velocity_controller->get_joint_torques_input_port());
 
   builder.Connect(status_receiver->get_velocity_estimated_output_port(),
@@ -106,11 +106,11 @@ int do_main(int argc, char* argv[]) {
   builder.Connect(velocity_controller->get_joint_torques_output_port(),
                   command_sender->get_torque_input_port());
 
-  builder.Connect(status_receiver->get_position_measured_output_port(),
-                  command_sender->get_position_input_port());
+  //builder.Connect(status_receiver->get_position_measured_output_port(),
+  //                command_sender->get_position_input_port());
 
-  // builder.Connect(constant_position_src->get_output_port(),
-  //                 command_sender->get_position_input_port());
+  builder.Connect(mux->get_output_port(0),
+                   command_sender->get_position_input_port());
 
   builder.Connect(command_sender->get_output_port(),
                   command_publisher->get_input_port());

@@ -141,7 +141,7 @@ int DoMain() {
 
   const auto iiwa_joint_indices =
       world_plant->GetJointIndices(iiwa_model);
-      
+
   int q0_index = 0;
   for (const auto joint_index : iiwa_joint_indices) {
       drake::multibody::RevoluteJoint<double>* joint =
@@ -180,7 +180,7 @@ int DoMain() {
 
   // The virtual spring stiffness in Nm/rad.
   stiffness.resize(num_iiwa_positions);
-  stiffness << 5, 5, 5, 2.5, 2.5, 2.5, 2.5;
+  stiffness << 100, 100, 100, 50, 50, 50, 50;
 
   // A dimensionless damping ratio. See KukaTorqueController for details.
   damping_ratio.resize(num_iiwa_positions);
