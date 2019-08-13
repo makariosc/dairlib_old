@@ -1,6 +1,6 @@
 {
-    "AMPLITUDE" : 0.1,
-    "FREQUENCY" : 0.75,
+    "AMPLITUDE" : 0.2,
+    "FREQUENCY" : 0.375,
     "JOINT"     : 5,
     "MAX_VEL"   : 5
 }
